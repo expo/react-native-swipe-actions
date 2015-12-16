@@ -1,0 +1,14 @@
+{
+  "name": "react-native-swipe-actions",
+  "version": "0.1.0",
+  "description": "",
+  "main": "SwipeActions.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "lodash-node": "^3.10.1"
+  }
+}

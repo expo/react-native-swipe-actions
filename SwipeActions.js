@@ -135,7 +135,6 @@ export default class SwipeActions extends React.Component {
     return ACTION_BUTTON_WIDTH * this.props.actions.length;
   }
 
-  @autobind
   _onLayout(event) {
     this.setState({
       width: event.nativeEvent.layout.width,
@@ -143,7 +142,6 @@ export default class SwipeActions extends React.Component {
     });
   }
 
-  @autobind
   _onPanResponderEnd() {
     let threshold = this.state.isVisible ? -this._totalWidth() * 0.75 :
         -this._totalWidth() * 0.25;

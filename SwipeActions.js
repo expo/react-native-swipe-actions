@@ -28,7 +28,7 @@ const CLOSE_SWIPE_ACTIONS_EVENT = 'closeSwipeActions';
 export default class SwipeActions extends React.Component {
   static propTypes = {
     actions: PropTypes.array.isRequired,
-    events: PropTypes.object.isRequired,
+    events: PropTypes.object,
   };
 
   static CLOSE_SWIPE_ACTIONS_EVENT = CLOSE_SWIPE_ACTIONS_EVENT;
@@ -60,7 +60,8 @@ export default class SwipeActions extends React.Component {
       },
 
       onPanResponderGrant: (e, gestureState) => {
-        this.props.events.emit(CLOSE_SWIPE_ACTIONS_EVENT, this);
+        this.props.events &&
+          this.props.events.emit(CLOSE_SWIPE_ACTIONS_EVENT, this);
       },
 
       onPanResponderMove: (evt, gestureState) => {
@@ -81,20 +82,22 @@ export default class SwipeActions extends React.Component {
   }
 
   componentDidMount() {
-    this._subscription = this.props.events.addListener(
-      CLOSE_SWIPE_ACTIONS_EVENT,
-      exemptId => {
-        if (this === exemptId || !this.state.isVisible) {
-          return;
-        }
+    if (this.props.events) {
+      this._subscription = this.props.events.addListener(
+        CLOSE_SWIPE_ACTIONS_EVENT,
+        exemptId => {
+          if (this === exemptId || !this.state.isVisible) {
+            return;
+          }
 
-        this._animate(false);
-      },
-    );
+          this._animate(false);
+        },
+      );
+    }
   }
 
   componentWillUnmount() {
-    this._subscription.remove();
+    this._subscription && this._subscription.remove();
   }
 
   render() {
@@ -122,7 +125,7 @@ export default class SwipeActions extends React.Component {
         <Animated.View
           {...this._panResponder.panHandlers}
           style={{
-            left: this.state.xOffset,
+            transform: [{translateX: this.state.xOffset}],
             width: this.state.width,
           }}>
           {this.props.children}

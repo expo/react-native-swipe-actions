@@ -17,13 +17,13 @@ import React, {
 } from 'react-native';
 
 const START_SWIPE_THRESHOLD = 10.0;
-const ACTION_BUTTON_WIDTH = 90;
+const ACTION_BUTTON_DEFAULT_WIDTH = 90;
 const ANIMATION_DURATION_MS = 50;
 const CLOSE_SWIPE_ACTIONS_EVENT = 'closeSwipeActions';
 
 /**
- * `actions` prop is an array of objects with `text`, `backgroundColor`,
- * and `onPress` fields.
+ * `actions` prop is an array of objects with `text`, `style`,
+ * `width`, and `onPress` fields.
  */
 export default class SwipeActions extends React.Component {
   static propTypes = {
@@ -101,22 +101,26 @@ export default class SwipeActions extends React.Component {
   }
 
   render() {
+    let actionViewRight = 0;
     let actionViews = this.state.width === 0 ?
         null : this.props.actions.map((action, index) => {
-      return (
+      let actionWidth = (action.width != null) ? action.width : ACTION_BUTTON_DEFAULT_WIDTH;
+      let result = (
         <TouchableOpacity
           key={index}
           onPress={action.onPress}
-          style={[styles.actionContainer, {
-            right: ACTION_BUTTON_WIDTH * index,
+          style={[styles.actionContainer, action.style, {
+            right: actionViewRight,
+            width: actionWidth,
             height: this.state.height,
-            backgroundColor: action.backgroundColor,
           }]}>
           <Text style={styles.actionText}>
             {action.text}
           </Text>
         </TouchableOpacity>
       );
+      actionViewRight += actionWidth;
+      return result;
     });
 
     return (
@@ -135,7 +139,11 @@ export default class SwipeActions extends React.Component {
   }
 
   _totalWidth() {
-    return ACTION_BUTTON_WIDTH * this.props.actions.length;
+    let result = 0;
+    this.props.actions.forEach(action => {
+      result += (action.width != null) ? action.width : ACTION_BUTTON_DEFAULT_WIDTH;
+    });
+    return result;
   }
 
   _onLayout(event) {
@@ -176,7 +184,6 @@ let styles = StyleSheet.create({
     flexDirection: 'row',
   },
   actionContainer: {
-    width: ACTION_BUTTON_WIDTH,
     position: 'absolute',
     top: 0,
     bottom: 0,

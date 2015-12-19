@@ -22,7 +22,7 @@ const ANIMATION_DURATION_MS = 50;
 const CLOSE_SWIPE_ACTIONS_EVENT = 'closeSwipeActions';
 
 /**
- * `actions` prop is an array of objects with `text`, `containerStyle`,
+ * `actions` prop is an array of objects with `text`, `style`,
  * `width`, and `onPress` fields.
  */
 export default class SwipeActions extends React.Component {
@@ -104,13 +104,12 @@ export default class SwipeActions extends React.Component {
     let actionViewRight = 0;
     let actionViews = this.state.width === 0 ?
         null : this.props.actions.map((action, index) => {
-      let customStyle = (action.containerStyle) ? action.containerStyle : {};
-      let actionWidth = (action.width) ? action.width : ACTION_BUTTON_DEFAULT_WIDTH;
+      let actionWidth = (action.width != null) ? action.width : ACTION_BUTTON_DEFAULT_WIDTH;
       let result = (
         <TouchableOpacity
           key={index}
           onPress={action.onPress}
-          style={[styles.actionContainer, customStyle, {
+          style={[styles.actionContainer, action.style, {
             right: actionViewRight,
             width: actionWidth,
             height: this.state.height,
@@ -142,7 +141,7 @@ export default class SwipeActions extends React.Component {
   _totalWidth() {
     let result = 0;
     this.props.actions.forEach(action => {
-      result += (action.width) ? action.width : ACTION_BUTTON_DEFAULT_WIDTH;
+      result += (action.width != null) ? action.width : ACTION_BUTTON_DEFAULT_WIDTH;
     });
     return result;
   }

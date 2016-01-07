@@ -16,7 +16,8 @@ import React, {
   View,
 } from 'react-native';
 
-const START_SWIPE_THRESHOLD = 10.0;
+const START_SWIPE_THRESHOLD = 5;
+const HORIZONTAL_SWIPE_MULTIPLE = 4;
 const ACTION_BUTTON_DEFAULT_WIDTH = 90;
 const ANIMATION_DURATION_MS = 50;
 const CLOSE_SWIPE_ACTIONS_EVENT = 'closeSwipeActions';
@@ -27,8 +28,13 @@ const CLOSE_SWIPE_ACTIONS_EVENT = 'closeSwipeActions';
  */
 export default class SwipeActions extends React.Component {
   static propTypes = {
+    actionContainerStyle: View.propTypes.style,
     actions: PropTypes.array.isRequired,
     events: PropTypes.object,
+  };
+
+  static defaultProps = {
+    springBounciness: 3,
   };
 
   static CLOSE_SWIPE_ACTIONS_EVENT = CLOSE_SWIPE_ACTIONS_EVENT;
@@ -49,30 +55,37 @@ export default class SwipeActions extends React.Component {
   }
 
   componentWillMount() {
+    this.state.xOffset.addListener(({value}) => {
+      this._xOffsetValue = value;
+    });
+
     this._panResponder = PanResponder.create({
-      onMoveShouldSetPanResponder: (evt, gestureState) => {
-        // TODO: change this to allow the user to stop an animation
-        if (this.state.isAnimating) {
-          return false;
+      onMoveShouldSetPanResponder: (evt, {dx, dy}) => {
+        return (
+          Math.abs(dx) > START_SWIPE_THRESHOLD &&
+          Math.abs(dx) > Math.abs(dy) * HORIZONTAL_SWIPE_MULTIPLE
+        );
+      },
+      onPanResponderGrant: (e, gestureState) => {
+        if (typeof this._xOffsetValue !== 'undefined') {
+          this.state.xOffset.setOffset(this._xOffsetValue);
+          this.state.xOffset.setValue(0);
         }
 
-        return Math.abs(gestureState.dx) > START_SWIPE_THRESHOLD;
-      },
-
-      onPanResponderGrant: (e, gestureState) => {
         this.props.events &&
           this.props.events.emit(CLOSE_SWIPE_ACTIONS_EVENT, this);
       },
 
-      onPanResponderMove: (evt, gestureState) => {
-        let xOffset = gestureState.dx + (this.state.isVisible ? -this._totalWidth() : 0);
+      onPanResponderMove: (evt, {dx}) => {
+        let xOffset = dx + (this.state.isVisible ? -this._totalWidth() : 0);
+
         if (xOffset > 0) {
           xOffset = 0;
         } else if (xOffset < -this._totalWidth()) {
           xOffset = -this._totalWidth();
         }
 
-        this.state.xOffset.setValue(xOffset);
+        this.state.xOffset.setValue(dx);
       },
 
       onPanResponderTerminationRequest: () => false,
@@ -109,11 +122,14 @@ export default class SwipeActions extends React.Component {
         <TouchableOpacity
           key={index}
           onPress={action.onPress}
-          style={[styles.actionContainer, action.style, {
-            right: actionViewRight,
-            width: actionWidth,
-            height: this.state.height,
-          }]}>
+          style={[
+            styles.actionContainer,
+            action.style,
+            this.props.actionContainerStyle,
+            { right: actionViewRight,
+              width: actionWidth,
+              height: this.state.height, }
+          ]}>
           <Text style={styles.actionText}>
             {action.text}
           </Text>
@@ -123,13 +139,20 @@ export default class SwipeActions extends React.Component {
       return result;
     });
 
+    let totalWidth = this._totalWidth();
+
+    let translateX = this.state.xOffset.interpolate({
+      inputRange: [-totalWidth - 300, -totalWidth, 0, 100],
+      outputRange: [-totalWidth - 210, -totalWidth, 0, 30],
+    });
+
     return (
       <View onLayout={this._onLayout} style={styles.container}>
         {actionViews}
         <Animated.View
           {...this._panResponder.panHandlers}
           style={{
-            transform: [{translateX: this.state.xOffset}],
+            transform: [{translateX}],
             width: this.state.width,
           }}>
           {this.props.children}
@@ -153,29 +176,25 @@ export default class SwipeActions extends React.Component {
     });
   }
 
-  _onPanResponderEnd() {
+  _onPanResponderEnd(e, {vx}) {
+    this.state.xOffset.flattenOffset();
+
     let threshold = this.state.isVisible ? -this._totalWidth() * 0.75 :
         -this._totalWidth() * 0.25;
     let isVisible = this.state.xOffset.__getValue() < threshold;
-    this._animate(isVisible);
+    this._animate(isVisible, vx);
   }
 
-  _animate(isVisible) {
+  _animate(isVisible, vx) {
     this.setState({
-      isAnimating: true,
+      isVisible,
     });
 
     // TODO: account for velocity of pan gesture when it ended.
-    Animated.timing(this.state.xOffset, {
+    Animated.spring(this.state.xOffset, {
       toValue: isVisible ? -this._totalWidth() : 0,
-      easing: Easing.inOut(Easing.linear),
-      duration: ANIMATION_DURATION_MS,
-    }).start(result => {
-      this.setState({
-        isVisible,
-        isAnimating: false,
-      });
-    });
+      bounciness: this.props.springBounciness,
+    }).start();
   }
 }
 

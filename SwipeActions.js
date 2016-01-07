@@ -55,6 +55,7 @@ export default class SwipeActions extends React.Component {
   }
 
   componentWillMount() {
+    this._xOffsetValue = 0;
     this.state.xOffset.addListener(({value}) => {
       this._xOffsetValue = value;
     });
@@ -72,26 +73,46 @@ export default class SwipeActions extends React.Component {
           this.state.xOffset.setValue(0);
         }
 
+        this._grantDx = this._xOffsetValue;
+
         this.props.events &&
           this.props.events.emit(CLOSE_SWIPE_ACTIONS_EVENT, this);
       },
 
       onPanResponderMove: (evt, {dx}) => {
-        let xOffset = dx + (this.state.isVisible ? -this._totalWidth() : 0);
+        let absoluteXOffset = dx + this._grantDx;
+        let xOffset = dx;
 
-        if (xOffset > 0) {
-          xOffset = 0;
-        } else if (xOffset < -this._totalWidth()) {
-          xOffset = -this._totalWidth();
+        if (absoluteXOffset > 0) {
+          xOffset = -this._grantDx;
         }
 
-        this.state.xOffset.setValue(dx);
+        this.state.xOffset.setValue(xOffset);
       },
 
       onPanResponderTerminationRequest: () => false,
       onPanResponderTerminate: this._onPanResponderEnd,
       onPanResponderRelease: this._onPanResponderEnd,
     });
+  }
+
+  _onPanResponderEnd(e) {
+    let threshold = this.state.isVisible ? -this._totalWidth() * 0.75 :
+        -this._totalWidth() * 0.25;
+
+    let isVisible = this._xOffsetValue < threshold;
+
+    this.state.xOffset.flattenOffset();
+    this._animate(isVisible);
+  }
+
+  _animate(isVisible, vx) {
+    this.setState({isVisible});
+
+    Animated.spring(this.state.xOffset, {
+      toValue: isVisible ? -this._totalWidth() : 0,
+      bounciness: this.props.springBounciness,
+    }).start();
   }
 
   componentDidMount() {
@@ -174,27 +195,6 @@ export default class SwipeActions extends React.Component {
       width: event.nativeEvent.layout.width,
       height: event.nativeEvent.layout.height,
     });
-  }
-
-  _onPanResponderEnd(e, {vx}) {
-    this.state.xOffset.flattenOffset();
-
-    let threshold = this.state.isVisible ? -this._totalWidth() * 0.75 :
-        -this._totalWidth() * 0.25;
-    let isVisible = this.state.xOffset.__getValue() < threshold;
-    this._animate(isVisible, vx);
-  }
-
-  _animate(isVisible, vx) {
-    this.setState({
-      isVisible,
-    });
-
-    // TODO: account for velocity of pan gesture when it ended.
-    Animated.spring(this.state.xOffset, {
-      toValue: isVisible ? -this._totalWidth() : 0,
-      bounciness: this.props.springBounciness,
-    }).start();
   }
 }
 

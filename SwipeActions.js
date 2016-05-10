@@ -5,11 +5,11 @@
  */
 'use strict';
 
-import React, {
+import React, { PropTypes } from 'react';
+import {
   Animated,
   Easing,
   PanResponder,
-  PropTypes,
   StyleSheet,
   Text,
   TouchableOpacity,
